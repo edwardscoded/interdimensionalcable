@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!--
+Original backlog of mrmcpowned:
+DONE: Add a zoom-in functionality
+TODO: Volume animations
+TODO: Offline Animations
+TODO: Animation for Channel number on change
+TODO: Info Button
+TODO: Make proper remote
+CANCELED: Upvote on reddit using up button? 
+DONE: Make sure Muting works 
+DONE: Turn off animation?
+TODO: Opengraph meta data to make things look nice when finished
+-->
+
+<head>
+    <meta charset="UTF-8">
+    <title>Inter-Dimensional Cable</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://necolas.github.io/normalize.css/3.0.2/normalize.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css?family=PT+Mono" rel="stylesheet" type="text/css">
+    <meta property="og:title" content="Inter-Dimensional Cable" />
+    <meta property="og:type" content="website" />
+    <meta name="description" content="A non-stop stream of intergalactic content from /r/InterdimensionalCable straight to your eyeholes." />
+    <meta property="og:description" content="A non-stop stream of intergalactic content from /r/InterdimensionalCable straight to your eyeholes." />
+    <meta property="og:url" content="http://inter-dimensionalcable.xyz" />
+    <meta property="og:image" content="http://inter-dimensionalcable.xyz/images/opengraph.png" />
+    <meta property="og:image:width" content="499" />
+    <meta property="og:image:height" content="279" />
+    <!--  Twitter Cards  -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@MrMcPowned">
+    <meta name="twitter:creator" content="@MrMcPowned">
+    <meta name="twitter:title" content="Inter-Dimensional Cable">
+    <meta name="twitter:description" content="A non-stop stream of intergalactic content from /r/InterdimensionalCable straight to your eyeholes.">
+    <meta name="twitter:image" content="http://inter-dimensionalcable.xyz/images/opengraph.png">
+    <link rel="shortcut icon" href="favicon.png">
+</head>
+
+<body class="tv-off">
+    <div class="remote-area">
+        <div class="tips">
+            <ul>
+                <li><b>Power Button</b>: Turns TV On/Off(O,P)</li>
+                <li><b>Zoom</b>: Zooms the TV in or out for a better view(Z)</li>
+                <li><b>MENU</b>: Shows the TV menu which gives you a list of previously played shows and info about the site(M)</li>
+                <li><b>MUTE</b>: Mutes the TV's audio(S)</li>
+                <li><b>CH +</b>: Changes the channel(N,J,C,right)</li>
+                <li><b>VOL +/-</b>: Adjusts the TV's volume(+/-)</li>
+                <li><b>OK</b>: Opens the current video's Reddit thread in a new tab(R)</li>
+                <li><b>NO SIGNAL</b>: Reddit's API is down. Turn your TV On and Off again to see if the signal is back</li>
+            </ul>
+        </div>
+        <div class="remote">
+            <div class="top-row">
+                <span class="button red" id="power">Pwr</span>
+                <span class="button" id="zoom">Zoom</span>
+            </div>
+            <div class="matrix">
+                <span class="button">1</span>
+                <span class="button">2</span>
+                <span class="button">3</span>
+                <span class="button">4</span>
+                <span class="button">5</span>
+                <span class="button">6</span>
+                <span class="button">7</span>
+                <span class="button">8</span>
+                <span class="button">9</span>
+                <span class="button" id="menu">Menu</span>
+                <span class="button">0</span>
+                <span class="button" id="mute">Mute</span>
+            </div>
+            <div class="bottom">
+                <span class="button wide" id="channel-up">CH +</span>
+                <span class="button large" id="volume-down"><span>VOL<br/>-</span></span>
+                <a href="#" class="button center red" id="video-url" target="_blank">OK</a>
+                <span class="button large" id="volume-up"><span>VOL<br/>+</span></span>
+                <span class="button wide"></span>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <!--        <img src="images/Rick-morty-tv.png" alt="Rick and Morty TV Background" class="rick-bg">-->
+        <video src="video/rick-tv.webm" class="rick-bg" id="rick-bg" preload>
+        </video>
+        <audio src="audio/tvoff.mp3" id="off-audio" preload></audio>
+        <audio src="audio/channel-switch.mp3" id="switch-audio" preload></audio>
+        <audio src="" id="quote-player"></audio>
+        <div id="video">
+            <div class="cover animated"></div>
+            <div class="cover"></div>
+            <div id="yt-contain" class="channel show" data-channel-id="??">
+                <div class="cover static"></div>
+                <div class="volume" data-volume="60"></div>
+                <div id="yt-iframe"></div>
+            </div>
+            <div class="tv-menu">
+                <div class="contents">
+                    <div class="left">
+                        <p>Originally developed by <a href="https://mrmcpowned.com">Mr McPowned</a> (source on <a href="https://github.com/mrmcpowned/interdimensionalcable">on github</a>). Also <a href="http://gravypod.com">this guy</a> helped.</p>
+                        <p>Original idea by <a href="https://steamcommunity.com/id/2Mill/">this guy</a>.</p>
+                        <p>This version was tweaked by <a href="https://github.com/topotech/">this guy</a>, with a couple of features by <a href="https://github.com/williambl">This guy</a>.</p>
+                    </div>
+                    <div class="right">
+                        <h2>Menu</h2>
+                        <p><i>A non-stop stream of intergalactic content straight to your eyeholes!</i></p>
+                        <h3>Select your sources</h3>
+                        <input type="checkbox" id="IDC" checked = "true">/r/InterdimensionalCable (default)<br>
+                        <input type="checkbox" id="NTE">/r/NotTimAndEric<br>
+                        <input type="checkbox" id="ACI">/r/ACIDS<br>
+                        <input type="checkbox" id="FWV">/r/fifthworldvideos<br>
+                        <input type="checkbox" id="IBG">/r/IllBeYourGuide<br>
+                        <input type="checkbox" id="CMC">/r/CommercialCuts
+                        <h3>Minimum score</h3>
+                        <input type="range" min="0" max="1000" value="1" class="slider" id="min_score"><span id="score_preview">1</span>
+                        <h3>Past Shows</h3>
+                        <div id="list-template">
+                            <li>
+                                <a href="">
+                                    <div>
+                                        <div class="poster">
+                                            <div></div>
+                                        </div>
+                                        <div class="video-info">
+                                            <span class="video-title"></span>
+                                            <span class="video-author"></span>
+                                        </div>
+                                    </div>
+                                </a>
+                            </li>
+                        </div>
+                        <ul class="shows">
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- KEYBOARD CODE   -->
+    <script>
+        $(document).ready(function(){
+            $(document).keypress(function(event){
+                if (event.which == 43)//Vol (+)
+                $("#volume-up").click();
+
+                if (event.which == 45)//Vol (-)
+                $("#volume-down").click();
+            });
+            $(document).keydown(function(event){
+                if (event.which == 83) //(S)ilence (Mute)
+                $("#mute").click();
+
+                if (event.which == 77) //(M)enu
+                $("#menu").click();
+
+                if (event.which == 82) //(R)eddit (OK)
+                $("#video-url")[0].click();
+
+                if (event.which == 90) //(Z)oom
+                $("#zoom").click();
+
+                if (event.which == 80) //(P)ower
+                $("#power").click();
+
+                if (event.which == 79) //(O)N/OFF
+                $("#power").click();
+
+                if (event.which == 67) //(C)hannel (CH+)
+                $("#channel-up").click();
+
+                if (event.which == 78) //(N)ext (CH+)
+                $("#channel-up").click();
+
+                if (event.which == 74) // J (vi down/next button) (CH+)
+                $("#channel-up").click();
+                                
+                if (event.which == 39) // -> (next) (CH+)
+                $("#channel-up").click();
+            });
+        });
+    </script>
+    <script src="js/get-video.js"></script>
+    <script src="https://www.youtube.com/iframe_api" async></script>
+    <script>
+        //CSS USer Agent Selectors from http://rog.ie/blog/html5-boilerplate-addon
+        var b = document.documentElement;
+        b.setAttribute('data-useragent', navigator.userAgent);
+        b.setAttribute('data-platform', navigator.platform);
+        b.className += ((!!('ontouchstart' in window) || !!('onmsgesturechange' in window)) ? ' touch' : '');
+        //I'm lazy and don't wanna set target="_blank" on all those links
+        var thisSite = window.location.hostname;
+        $('a[href^="http://"], a[href^="https://"]').not('a[href^="http://' + thisSite + '"], a[href^="https://' + thisSite + '"]').attr('target', '_blank');
+
+    </script>
+</body>
+
+</html>
