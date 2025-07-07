@@ -1,112 +1,208 @@
-// get-video.js — Cleaned up version using only /r/BonkTV
+//Adding support to different subredits
+var tx_subs = ["/r/InterdimensionalCable", "/r/NotTimAndEric", "/r/ACIDS", "/r/fifthworldvideos","/r/IllBeYourGuide", "/r/CommercialCuts"];
+var len_subs = tx_subs.length;
+var MAX_REQ = 50; //Max number of links will be requested each JSON call
+var PROB = 14; //Probability of accepting link (percentage)
+var min_score = 1; //Minimum score for reddit posts
 
-var tx_subs = ["/r/BonkTV"];
-var MAX_REQ = 50;
-var PROB = 100; // Set to 100 for testing
-var min_score = 0; // Set to 0 for testing
+var min_score_slider = document.getElementById("min_score"); //Slider for minimum reddit score
+var min_score_output = document.getElementById("score_preview"); //Output for minimum reddit score
 
+// Update the min score & output whenever slider value changes
+min_score_slider.oninput = function() {
+    min_score_output.innerHTML = this.value;
+    min_score = this.value;
+} 
+
+//Begining of original code
 if (!Array.prototype.randomElement) {
-  Array.prototype.randomElement = function () {
-    return this[Math.floor(Math.random() * this.length)];
-  };
+	Array.prototype.randomElement = function () {
+		return this[Math.floor(Math.random() * this.length)];
+	};
 }
 
 if (!Array.prototype.randomPop) {
-  Array.prototype.randomPop = function () {
-    var index = Math.floor(Math.random() * this.length);
-    return this.splice(index, 1)[0];
-  };
+	Array.prototype.randomPop = function () {
+		var index = Math.floor(Math.random() * this.length);
+		return this.splice(index, 1)[0];
+	};
 }
 
+
 function animate_object(selector) {
-  var reset = function () {
-    $(selector).toggleClass("reset-animation");
-  };
-  reset();
-  setTimeout(reset, 200);
+
+	var reset = function () {
+		// TODO: Will this work?
+		$(selector).toggleClass("reset-animation");
+	};
+
+	reset();
+	setTimeout(reset, 200);
 }
 
 $(function () {
-  var get_next_post = (function () {
-    var youtube_video_regex = new RegExp(
-      /(?:youtube\.com\/\S*(?:(?:\/e(?:mbed))?\/|watch\/\?\?(?:\S*?&?v\=))|youtu\.be\/)([a-zA-Z0-9_-]{6,11})/
-    );
+	var get_next_post = (function () {
 
-    var videos = [],
-      played = [];
+		var youtube_video_regex = new RegExp(/(?:youtube\.com\/\S*(?:(?:\/e(?:mbed))?\/|watch\/?\?(?:\S*?&?v\=))|youtu\.be\/)([a-zA-Z0-9_-]{6,11})/);
 
-    var probability_filter = function () {
-      return 100 * Math.random() <= PROB;
-    };
+		var videos = [], played = [];
+		
+		var probability_filter = function() {
+			var trial = 100*Math.random();
+			return trial <= PROB;	
+		}
 
-    var get_api_call = function (time, sort, page, random_page) {
-      var prefix = `https://www.reddit.com${tx_subs[0]}`;
-      var suffix = "";
+		var get_api_call = function (time, sort, page, random_page) {
+			var cb_subs = new Array(len_subs);
+			cb_subs[0] = document.getElementById("IDC"); // Interdimensional Cable
+			cb_subs[1] = document.getElementById("NTE"); // Not Tim and Eric
+			cb_subs[2] = document.getElementById("ACI"); // ACIDS
+			cb_subs[3] = document.getElementById("FWV"); // Fifth World Videos
+                        cb_subs[4] = document.getElementById("IBG"); // I'll Be Your Guide
+                        cb_subs[5] = document.getElementById("CMC"); // Commercial Cuts
+			
+			var final_url;
+			var exist_checked = false;
+			for (i = 0; i < len_subs; i++) {
+				exist_checked = exist_checked || cb_subs[i].checked
+			}
+			if (exist_checked){
+				do {
+					var random_sub = Math.floor(len_subs * Math.random());
+				} while (cb_subs[random_sub].checked == false);
+				
+				tx_message = "Checkeados:\n";
+				for (i = 0; i < len_subs; i++) {
+					if ( cb_subs[i].checked == true )
+						tx_message += " · " + tx_subs[i] + "\n";
+				}
+			}else{
+				// if non option is 
+				// checked, use /r/InterdimensionalCable
+				// by default
+				var random_sub = 0;
+			}
+			var prefix = `https://www.reddit.com`+tx_subs[random_sub];
+			var suffix = ``;
+			if (random_page){
+				var use_randomrising = [true,false].randomElement();
+				if (!use_randomrising){
+					var random_post_data;
+					var is_ready = false;
+					var new_url;
+					$.getJSON(prefix+`/random.json`,function (api_response) {
+						api_response[0].data.children.forEach(function (child) {
+							random_post_data = child.data;
+							suffix = `?after=`+ random_post_data.name;
+							new_url = `https://www.reddit.com`+tx_subs[random_sub]+`/`+page+`.json`+suffix+`&limit=`+(MAX_REQ-1);
+							is_ready = true;
+							if(probability_filter()){
+								if (add_youtube_url(child.data)) {
+									console.log("Added " + child.data.url);
+								} else {
+									console.log("Ignored " + child.data.url);
+								}
+							}
+						});
+						$.getJSON(new_url, function (api_response) {
+							api_response.data.children.forEach(function (child) {
+								if(probability_filter()){
+									if (add_youtube_url(child.data)) {
+										console.log("Added " + child.data.url);
+									} else {
+										console.log("Ignored " + child.data.url);
+									}
+								}
+							});
+						}).fail(function () {
+							// Re-Poll on timeout/parse failure
+							setTimeout(load_videos, 5000);
+						});
+					});
+					return "nada"
+				}else{
+					return "https://www.reddit.com"+tx_subs[random_sub]+"/randomrising.json?limit="+(MAX_REQ);
+				}
+			}else{
+				return `https://www.reddit.com`+tx_subs[random_sub]+`/search.json?q=site%3Ayoutube.com+OR+site%3Ayoutu.be&restrict_sr=on&sort=${sort}&t=${time}&show="all"&limit=`+MAX_REQ+suffix;
+			}
+			
+			return null;
+		};
 
-      if (random_page) {
-        var use_randomrising = [true, false].randomElement();
-        if (!use_randomrising) {
-          $.getJSON(prefix + `/random.json`, function (api_response) {
-            api_response[0].data.children.forEach(function (child) {
-              if (probability_filter()) add_youtube_url(child.data);
-            });
-          });
-          return "nada";
-        } else {
-          return `${prefix}/randomrising.json?limit=${MAX_REQ}`;
-        }
-      } else {
-        return `${prefix}/search.json?q=site%3Ayoutube.com+OR+site%3Ayoutu.be&restrict_sr=on&sort=${sort}&t=${time}&show=all&limit=${MAX_REQ}`;
-      }
-    };
+		var add_youtube_url = function (reddit_post_data) {
+			// Check if the URL is for youtube
+			if (!youtube_video_regex.test(reddit_post_data.url)) {
+				return false;
+			}
+			// Check to see if the entier video is being linked.
+			// If a certain index is being linked, ignore the video.
+			if (reddit_post_data.url.indexOf("t=") != -1) {
+				return false;
+			}
+			// Check if a reddit post has less than 1 points.
+			// If the post does, ignore it. It is unworthy.
+			if (reddit_post_data.score < min_score) {
+				return false;
+			}
+			var groups = youtube_video_regex.exec(reddit_post_data.url);
+			// TODO: Trim video id?
+			var video_id = groups[1]; // 2nd group is the video id.
+			if (played.indexOf(video_id) != -1) {
+				return false;
+			}
+			videos.push({
+				"video": video_id,
+				"link": `https://www.reddit.com${reddit_post_data.permalink}`
+			});
+            		played.push(video_id);
+			return true;
+		};
 
-    var add_youtube_url = function (reddit_post_data) {
-      if (!youtube_video_regex.test(reddit_post_data.url)) return false;
-      if (reddit_post_data.url.includes("t=")) return false;
-      if (reddit_post_data.score < min_score) return false;
 
-      var video_id = youtube_video_regex.exec(reddit_post_data.url)[1];
-      if (played.includes(video_id)) return false;
 
-      videos.push({
-        video: video_id,
-        link: `https://www.reddit.com${reddit_post_data.permalink}`,
-      });
-      played.push(video_id);
-      return true;
-    };
+		var load_posts = function () {
+			var time = ["week", "month", "year", "all"].randomElement();
+			var sort = ["relevance", "hot", "top", "new", "comments"].randomElement();
+			var page = ["hot", "top", "new"].randomElement();
+			var random_page = [true,false].randomElement();
+			var url = get_api_call(time, sort, page, random_page);
+			if (url != "nada") {//Dirty awful hack
+				$.getJSON(url, function (api_response) {
+					api_response.data.children.forEach(function (child) {
+						if(probability_filter()){
+							if (add_youtube_url(child.data)) {
+								console.log("Added " + child.data.url);
+							} else {
+								console.log("Ignored " + child.data.url);
+							}
+						}
+					});
+				}).fail(function () {
+					// Re-Poll on timeout/parse failure
+					setTimeout(load_videos, 5000);
+				});
+			}//Else: see inside get_api_call()
+		};
 
-    var load_posts = function () {
-      var time = ["week", "month", "year", "all"].randomElement();
-      var sort = ["relevance", "hot", "top", "new", "comments"].randomElement();
-      var page = ["hot", "top", "new"].randomElement();
-      var random_page = [true, false].randomElement();
-      var url = get_api_call(time, sort, page, random_page);
+		load_posts();
 
-      if (url !== "nada") {
-        $.getJSON(url, function (api_response) {
-          api_response.data.children.forEach(function (child) {
-            if (probability_filter()) add_youtube_url(child.data);
-          });
-        }).fail(function () {
-          setTimeout(load_posts, 5000);
-        });
-      }
-    };
+		var get_next_post = function () {
+			// Removing this exception, now if length is zero, try again AND again.
+				// We ran out of videos
+				// Reddit is likely off
+				//if (videos.length == 0) {
+				//	return null;
+				//}
+			// We need to cache more videos
+			if (videos.length < 5) {
+				load_posts();
+			}
+			return videos.randomPop();
+		};
 
-    load_posts();
-
-    var get_next_post = function () {
-      if (videos.length === 0) {
-        load_posts();
-        return null;
-      }
-      if (videos.length < 5) load_posts();
-      return videos.randomPop();
-    };
-
-    return get_next_post;
-  })();
+		return get_next_post;
+	})();
 
 	var sound_effect = (function () {
 		var sounds = {
