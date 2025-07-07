@@ -1,5 +1,5 @@
 //Adding support to different subredits
-var tx_subs = ["/r/InterdimensionalCable", "/r/NotTimAndEric", "/r/ACIDS", "/r/fifthworldvideos","/r/IllBeYourGuide", "/r/CommercialCuts"];
+var tx_subs = ["/r/BonkTV"];
 var len_subs = tx_subs.length;
 var MAX_REQ = 50; //Max number of links will be requested each JSON call
 var PROB = 14; //Probability of accepting link (percentage)
@@ -53,35 +53,9 @@ $(function () {
 		}
 
 		var get_api_call = function (time, sort, page, random_page) {
-			var cb_subs = new Array(len_subs);
-			cb_subs[0] = document.getElementById("IDC"); // Interdimensional Cable
-			cb_subs[1] = document.getElementById("NTE"); // Not Tim and Eric
-			cb_subs[2] = document.getElementById("ACI"); // ACIDS
-			cb_subs[3] = document.getElementById("FWV"); // Fifth World Videos
-                        cb_subs[4] = document.getElementById("IBG"); // I'll Be Your Guide
-                        cb_subs[5] = document.getElementById("CMC"); // Commercial Cuts
+			// Since we only have one subreddit now, we can simplify this
+			var random_sub = 0; // Always use the first (and only) subreddit
 			
-			var final_url;
-			var exist_checked = false;
-			for (i = 0; i < len_subs; i++) {
-				exist_checked = exist_checked || cb_subs[i].checked
-			}
-			if (exist_checked){
-				do {
-					var random_sub = Math.floor(len_subs * Math.random());
-				} while (cb_subs[random_sub].checked == false);
-				
-				tx_message = "Checkeados:\n";
-				for (i = 0; i < len_subs; i++) {
-					if ( cb_subs[i].checked == true )
-						tx_message += " · " + tx_subs[i] + "\n";
-				}
-			}else{
-				// if non option is 
-				// checked, use /r/InterdimensionalCable
-				// by default
-				var random_sub = 0;
-			}
 			var prefix = `https://www.reddit.com`+tx_subs[random_sub];
 			var suffix = ``;
 			if (random_page){
