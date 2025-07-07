@@ -52,57 +52,54 @@ $(function () {
 			return trial <= PROB;	
 		}
 
-		var get_api_call = function (time, sort, page, random_page) {
-var random_sub = 0; // Always use BonkTV
+var get_api_call = function (time, sort, page, random_page) {
+    var random_sub = 0; // Always use BonkTV
+    var prefix = `https://www.reddit.com` + tx_subs[random_sub];
+    var suffix = ``;
 
-			}
-			var prefix = `https://www.reddit.com`+tx_subs[random_sub];
-			var suffix = ``;
-			if (random_page){
-				var use_randomrising = [true,false].randomElement();
-				if (!use_randomrising){
-					var random_post_data;
-					var is_ready = false;
-					var new_url;
-					$.getJSON(prefix+`/random.json`,function (api_response) {
-						api_response[0].data.children.forEach(function (child) {
-							random_post_data = child.data;
-							suffix = `?after=`+ random_post_data.name;
-							new_url = `https://www.reddit.com`+tx_subs[random_sub]+`/`+page+`.json`+suffix+`&limit=`+(MAX_REQ-1);
-							is_ready = true;
-							if(probability_filter()){
-								if (add_youtube_url(child.data)) {
-									console.log("Added " + child.data.url);
-								} else {
-									console.log("Ignored " + child.data.url);
-								}
-							}
-						});
-						$.getJSON(new_url, function (api_response) {
-							api_response.data.children.forEach(function (child) {
-								if(probability_filter()){
-									if (add_youtube_url(child.data)) {
-										console.log("Added " + child.data.url);
-									} else {
-										console.log("Ignored " + child.data.url);
-									}
-								}
-							});
-						}).fail(function () {
-							// Re-Poll on timeout/parse failure
-							setTimeout(load_videos, 5000);
-						});
-					});
-					return "nada"
-				}else{
-					return "https://www.reddit.com"+tx_subs[random_sub]+"/randomrising.json?limit="+(MAX_REQ);
-				}
-			}else{
-				return `https://www.reddit.com`+tx_subs[random_sub]+`/search.json?q=site%3Ayoutube.com+OR+site%3Ayoutu.be&restrict_sr=on&sort=${sort}&t=${time}&show="all"&limit=`+MAX_REQ+suffix;
-			}
-			
-			return null;
-		};
+    if (random_page) {
+        var use_randomrising = [true, false].randomElement();
+        if (!use_randomrising) {
+            var random_post_data;
+            var is_ready = false;
+            var new_url;
+            $.getJSON(prefix + `/random.json`, function (api_response) {
+                api_response[0].data.children.forEach(function (child) {
+                    random_post_data = child.data;
+                    suffix = `?after=` + random_post_data.name;
+                    new_url = `https://www.reddit.com` + tx_subs[random_sub] + `/` + page + `.json` + suffix + `&limit=` + (MAX_REQ - 1);
+                    is_ready = true;
+                    if (probability_filter()) {
+                        if (add_youtube_url(child.data)) {
+                            console.log("Added " + child.data.url);
+                        } else {
+                            console.log("Ignored " + child.data.url);
+                        }
+                    }
+                });
+                $.getJSON(new_url, function (api_response) {
+                    api_response.data.children.forEach(function (child) {
+                        if (probability_filter()) {
+                            if (add_youtube_url(child.data)) {
+                                console.log("Added " + child.data.url);
+                            } else {
+                                console.log("Ignored " + child.data.url);
+                            }
+                        }
+                    });
+                }).fail(function () {
+                    setTimeout(load_videos, 5000);
+                });
+            });
+            return "nada"
+        } else {
+            return `https://www.reddit.com` + tx_subs[random_sub] + `/randomrising.json?limit=` + (MAX_REQ);
+        }
+    } else {
+        return `https://www.reddit.com` + tx_subs[random_sub] + `/search.json?q=site%3Ayoutube.com+OR+site%3Ayoutu.be&restrict_sr=on&sort=${sort}&t=${time}&show="all"&limit=` + MAX_REQ + suffix;
+    }
+};
+
 
 		var add_youtube_url = function (reddit_post_data) {
 			// Check if the URL is for youtube
