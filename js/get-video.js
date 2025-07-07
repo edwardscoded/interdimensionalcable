@@ -2,8 +2,8 @@
 var tx_subs = ["/r/BonkTV"];
 var len_subs = tx_subs.length;
 var MAX_REQ = 50; //Max number of links will be requested each JSON call
-var PROB = 14; //Probability of accepting link (percentage)
-var min_score = 1; //Minimum score for reddit posts
+var PROB = 100; // Accept ALL posts (was 14) - since we only have 3 videos
+var min_score = 0; // Accept videos with 0 score (was 1)
 
 var min_score_slider = document.getElementById("min_score"); //Slider for minimum reddit score
 var min_score_output = document.getElementById("score_preview"); //Output for minimum reddit score
@@ -58,50 +58,14 @@ $(function () {
 			
 			var prefix = `https://www.reddit.com`+tx_subs[random_sub];
 			var suffix = ``;
+			
+			// For small subreddits, use simpler API calls
 			if (random_page){
-				var use_randomrising = [true,false].randomElement();
-				if (!use_randomrising){
-					var random_post_data;
-					var is_ready = false;
-					var new_url;
-					$.getJSON(prefix+`/random.json`,function (api_response) {
-						api_response[0].data.children.forEach(function (child) {
-							random_post_data = child.data;
-							suffix = `?after=`+ random_post_data.name;
-							new_url = `https://www.reddit.com`+tx_subs[random_sub]+`/`+page+`.json`+suffix+`&limit=`+(MAX_REQ-1);
-							is_ready = true;
-							if(probability_filter()){
-								if (add_youtube_url(child.data)) {
-									console.log("Added " + child.data.url);
-								} else {
-									console.log("Ignored " + child.data.url);
-								}
-							}
-						});
-						$.getJSON(new_url, function (api_response) {
-							api_response.data.children.forEach(function (child) {
-								if(probability_filter()){
-									if (add_youtube_url(child.data)) {
-										console.log("Added " + child.data.url);
-									} else {
-										console.log("Ignored " + child.data.url);
-									}
-								}
-							});
-						}).fail(function () {
-							// Re-Poll on timeout/parse failure
-							setTimeout(load_videos, 5000);
-						});
-					});
-					return "nada"
-				}else{
-					return "https://www.reddit.com"+tx_subs[random_sub]+"/randomrising.json?limit="+(MAX_REQ);
-				}
+				// Try hot posts first for small subreddits
+				return "https://www.reddit.com"+tx_subs[random_sub]+"/hot.json?limit="+(MAX_REQ);
 			}else{
 				return `https://www.reddit.com`+tx_subs[random_sub]+`/search.json?q=site%3Ayoutube.com+OR+site%3Ayoutu.be&restrict_sr=on&sort=${sort}&t=${time}&show="all"&limit=`+MAX_REQ+suffix;
 			}
-			
-			return null;
 		};
 
 		var add_youtube_url = function (reddit_post_data) {
@@ -114,8 +78,7 @@ $(function () {
 			if (reddit_post_data.url.indexOf("t=") != -1) {
 				return false;
 			}
-			// Check if a reddit post has less than 1 points.
-			// If the post does, ignore it. It is unworthy.
+			// Check if a reddit post has less than minimum points.
 			if (reddit_post_data.score < min_score) {
 				return false;
 			}
@@ -129,11 +92,9 @@ $(function () {
 				"video": video_id,
 				"link": `https://www.reddit.com${reddit_post_data.permalink}`
 			});
-            		played.push(video_id);
+            played.push(video_id);
 			return true;
 		};
-
-
 
 		var load_posts = function () {
 			var time = ["week", "month", "year", "all"].randomElement();
@@ -141,37 +102,79 @@ $(function () {
 			var page = ["hot", "top", "new"].randomElement();
 			var random_page = [true,false].randomElement();
 			var url = get_api_call(time, sort, page, random_page);
-			if (url != "nada") {//Dirty awful hack
+			
+			if (url != "nada") {
 				$.getJSON(url, function (api_response) {
-					api_response.data.children.forEach(function (child) {
-						if(probability_filter()){
-							if (add_youtube_url(child.data)) {
-								console.log("Added " + child.data.url);
-							} else {
-								console.log("Ignored " + child.data.url);
+					if (api_response.data && api_response.data.children) {
+						api_response.data.children.forEach(function (child) {
+							if(probability_filter()){
+								if (add_youtube_url(child.data)) {
+									console.log("Added " + child.data.url);
+								} else {
+									console.log("Ignored " + child.data.url);
+								}
 							}
-						}
-					});
+						});
+					}
+					
+					// If we still don't have enough videos, try getting ALL posts from the subreddit
+					if (videos.length < 3) {
+						var fallback_url = "https://www.reddit.com"+tx_subs[0]+"/hot.json?limit=100";
+						$.getJSON(fallback_url, function (fallback_response) {
+							if (fallback_response.data && fallback_response.data.children) {
+								fallback_response.data.children.forEach(function (child) {
+									// Accept ALL YouTube videos in fallback mode
+									if (add_youtube_url(child.data)) {
+										console.log("Fallback added " + child.data.url);
+									}
+								});
+							}
+						});
+					}
 				}).fail(function () {
-					// Re-Poll on timeout/parse failure
-					setTimeout(load_videos, 5000);
+					// If API fails, try a simple hot posts call
+					var simple_url = "https://www.reddit.com"+tx_subs[0]+"/hot.json?limit=25";
+					$.getJSON(simple_url, function (simple_response) {
+						if (simple_response.data && simple_response.data.children) {
+							simple_response.data.children.forEach(function (child) {
+								if (add_youtube_url(child.data)) {
+									console.log("Simple fallback added " + child.data.url);
+								}
+							});
+						}
+					}).fail(function () {
+						// Re-Poll on timeout/parse failure
+						setTimeout(load_posts, 5000);
+					});
 				});
-			}//Else: see inside get_api_call()
+			}
 		};
 
 		load_posts();
 
 		var get_next_post = function () {
-			// Removing this exception, now if length is zero, try again AND again.
-				// We ran out of videos
-				// Reddit is likely off
-				//if (videos.length == 0) {
-				//	return null;
-				//}
 			// We need to cache more videos
-			if (videos.length < 5) {
+			if (videos.length < 2) { // Lowered from 5 to 2 for small subreddit
 				load_posts();
 			}
+			
+			// If we've played all videos, reset the played list to start over
+			if (videos.length === 0 && played.length > 0) {
+				console.log("All videos played, resetting...");
+				played = []; // Clear the played list
+				load_posts(); // Reload all videos
+				// Wait a moment for the reload
+				setTimeout(function() {
+					if (videos.length > 0) {
+						return videos.randomPop();
+					}
+				}, 1000);
+			}
+			
+			if (videos.length === 0) {
+				return null;
+			}
+			
 			return videos.randomPop();
 		};
 
@@ -396,6 +399,9 @@ $(function () {
 
 		var get_next_video = function () {
 			var post = get_next_post();
+			if (post === null) {
+				return null;
+			}
 			$("#video-url").attr({
 				"href": post.link,
 				"target": "_blank"
