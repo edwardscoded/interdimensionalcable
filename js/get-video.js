@@ -1,179 +1,112 @@
-//Adding support to different subredits
+// get-video.js — Cleaned up version using only /r/BonkTV
+
 var tx_subs = ["/r/BonkTV"];
-var len_subs = tx_subs.length;
-var MAX_REQ = 50; //Max number of links will be requested each JSON call
-var PROB = 14; //Probability of accepting link (percentage)
-var min_score = 1; //Minimum score for reddit posts
+var MAX_REQ = 50;
+var PROB = 100; // Set to 100 for testing
+var min_score = 0; // Set to 0 for testing
 
-var min_score_slider = document.getElementById("min_score"); //Slider for minimum reddit score
-var min_score_output = document.getElementById("score_preview"); //Output for minimum reddit score
-
-// Update the min score & output whenever slider value changes
-min_score_slider.oninput = function() {
-    min_score_output.innerHTML = this.value;
-    min_score = this.value;
-} 
-
-//Begining of original code
 if (!Array.prototype.randomElement) {
-	Array.prototype.randomElement = function () {
-		return this[Math.floor(Math.random() * this.length)];
-	};
+  Array.prototype.randomElement = function () {
+    return this[Math.floor(Math.random() * this.length)];
+  };
 }
 
 if (!Array.prototype.randomPop) {
-	Array.prototype.randomPop = function () {
-		var index = Math.floor(Math.random() * this.length);
-		return this.splice(index, 1)[0];
-	};
+  Array.prototype.randomPop = function () {
+    var index = Math.floor(Math.random() * this.length);
+    return this.splice(index, 1)[0];
+  };
 }
 
-
 function animate_object(selector) {
-
-	var reset = function () {
-		// TODO: Will this work?
-		$(selector).toggleClass("reset-animation");
-	};
-
-	reset();
-	setTimeout(reset, 200);
+  var reset = function () {
+    $(selector).toggleClass("reset-animation");
+  };
+  reset();
+  setTimeout(reset, 200);
 }
 
 $(function () {
-	var get_next_post = (function () {
+  var get_next_post = (function () {
+    var youtube_video_regex = new RegExp(
+      /(?:youtube\.com\/\S*(?:(?:\/e(?:mbed))?\/|watch\/\?\?(?:\S*?&?v\=))|youtu\.be\/)([a-zA-Z0-9_-]{6,11})/
+    );
 
-		var youtube_video_regex = new RegExp(/(?:youtube\.com\/\S*(?:(?:\/e(?:mbed))?\/|watch\/?\?(?:\S*?&?v\=))|youtu\.be\/)([a-zA-Z0-9_-]{6,11})/);
+    var videos = [],
+      played = [];
 
-		var videos = [], played = [];
-		
-		var probability_filter = function() {
-			var trial = 100*Math.random();
-			return trial <= PROB;	
-		}
+    var probability_filter = function () {
+      return 100 * Math.random() <= PROB;
+    };
 
-var get_api_call = function (time, sort, page, random_page) {
-    var random_sub = 0; // Always use BonkTV
-    var prefix = `https://www.reddit.com` + tx_subs[random_sub];
-    var suffix = ``;
+    var get_api_call = function (time, sort, page, random_page) {
+      var prefix = `https://www.reddit.com${tx_subs[0]}`;
+      var suffix = "";
 
-    if (random_page) {
+      if (random_page) {
         var use_randomrising = [true, false].randomElement();
         if (!use_randomrising) {
-            var random_post_data;
-            var is_ready = false;
-            var new_url;
-            $.getJSON(prefix + `/random.json`, function (api_response) {
-                api_response[0].data.children.forEach(function (child) {
-                    random_post_data = child.data;
-                    suffix = `?after=` + random_post_data.name;
-                    new_url = `https://www.reddit.com` + tx_subs[random_sub] + `/` + page + `.json` + suffix + `&limit=` + (MAX_REQ - 1);
-                    is_ready = true;
-                    if (probability_filter()) {
-                        if (add_youtube_url(child.data)) {
-                            console.log("Added " + child.data.url);
-                        } else {
-                            console.log("Ignored " + child.data.url);
-                        }
-                    }
-                });
-                $.getJSON(new_url, function (api_response) {
-                    api_response.data.children.forEach(function (child) {
-                        if (probability_filter()) {
-                            if (add_youtube_url(child.data)) {
-                                console.log("Added " + child.data.url);
-                            } else {
-                                console.log("Ignored " + child.data.url);
-                            }
-                        }
-                    });
-                }).fail(function () {
-                    setTimeout(load_videos, 5000);
-                });
+          $.getJSON(prefix + `/random.json`, function (api_response) {
+            api_response[0].data.children.forEach(function (child) {
+              if (probability_filter()) add_youtube_url(child.data);
             });
-            return "nada"
+          });
+          return "nada";
         } else {
-            return `https://www.reddit.com` + tx_subs[random_sub] + `/randomrising.json?limit=` + (MAX_REQ);
+          return `${prefix}/randomrising.json?limit=${MAX_REQ}`;
         }
-    } else {
-        return `https://www.reddit.com` + tx_subs[random_sub] + `/search.json?q=site%3Ayoutube.com+OR+site%3Ayoutu.be&restrict_sr=on&sort=${sort}&t=${time}&show="all"&limit=` + MAX_REQ + suffix;
-    }
-};
+      } else {
+        return `${prefix}/search.json?q=site%3Ayoutube.com+OR+site%3Ayoutu.be&restrict_sr=on&sort=${sort}&t=${time}&show=all&limit=${MAX_REQ}`;
+      }
+    };
 
+    var add_youtube_url = function (reddit_post_data) {
+      if (!youtube_video_regex.test(reddit_post_data.url)) return false;
+      if (reddit_post_data.url.includes("t=")) return false;
+      if (reddit_post_data.score < min_score) return false;
 
-		var add_youtube_url = function (reddit_post_data) {
-			// Check if the URL is for youtube
-			if (!youtube_video_regex.test(reddit_post_data.url)) {
-				return false;
-			}
-			// Check to see if the entier video is being linked.
-			// If a certain index is being linked, ignore the video.
-			if (reddit_post_data.url.indexOf("t=") != -1) {
-				return false;
-			}
-			// Check if a reddit post has less than 1 points.
-			// If the post does, ignore it. It is unworthy.
-			if (reddit_post_data.score < min_score) {
-				return false;
-			}
-			var groups = youtube_video_regex.exec(reddit_post_data.url);
-			// TODO: Trim video id?
-			var video_id = groups[1]; // 2nd group is the video id.
-			if (played.indexOf(video_id) != -1) {
-				return false;
-			}
-			videos.push({
-				"video": video_id,
-				"link": `https://www.reddit.com${reddit_post_data.permalink}`
-			});
-            		played.push(video_id);
-			return true;
-		};
+      var video_id = youtube_video_regex.exec(reddit_post_data.url)[1];
+      if (played.includes(video_id)) return false;
 
+      videos.push({
+        video: video_id,
+        link: `https://www.reddit.com${reddit_post_data.permalink}`,
+      });
+      played.push(video_id);
+      return true;
+    };
 
+    var load_posts = function () {
+      var time = ["week", "month", "year", "all"].randomElement();
+      var sort = ["relevance", "hot", "top", "new", "comments"].randomElement();
+      var page = ["hot", "top", "new"].randomElement();
+      var random_page = [true, false].randomElement();
+      var url = get_api_call(time, sort, page, random_page);
 
-		var load_posts = function () {
-			var time = ["week", "month", "year", "all"].randomElement();
-			var sort = ["relevance", "hot", "top", "new", "comments"].randomElement();
-			var page = ["hot", "top", "new"].randomElement();
-			var random_page = [true,false].randomElement();
-			var url = get_api_call(time, sort, page, random_page);
-			if (url != "nada") {//Dirty awful hack
-				$.getJSON(url, function (api_response) {
-					api_response.data.children.forEach(function (child) {
-						if(probability_filter()){
-							if (add_youtube_url(child.data)) {
-								console.log("Added " + child.data.url);
-							} else {
-								console.log("Ignored " + child.data.url);
-							}
-						}
-					});
-				}).fail(function () {
-					// Re-Poll on timeout/parse failure
-					setTimeout(load_videos, 5000);
-				});
-			}//Else: see inside get_api_call()
-		};
+      if (url !== "nada") {
+        $.getJSON(url, function (api_response) {
+          api_response.data.children.forEach(function (child) {
+            if (probability_filter()) add_youtube_url(child.data);
+          });
+        }).fail(function () {
+          setTimeout(load_posts, 5000);
+        });
+      }
+    };
 
-		load_posts();
+    load_posts();
 
-		var get_next_post = function () {
-			// Removing this exception, now if length is zero, try again AND again.
-				// We ran out of videos
-				// Reddit is likely off
-				//if (videos.length == 0) {
-				//	return null;
-				//}
-			// We need to cache more videos
-			if (videos.length < 5) {
-				load_posts();
-			}
-			return videos.randomPop();
-		};
+    var get_next_post = function () {
+      if (videos.length === 0) {
+        load_posts();
+        return null;
+      }
+      if (videos.length < 5) load_posts();
+      return videos.randomPop();
+    };
 
-		return get_next_post;
-	})();
+    return get_next_post;
+  })();
 
 	var sound_effect = (function () {
 		var sounds = {
