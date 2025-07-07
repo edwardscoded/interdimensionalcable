@@ -38,6 +38,39 @@ TODO: Opengraph meta data to make things look nice when finished
     <meta name="twitter:description" content="A non-stop stream of intergalactic content from /r/BonkTV straight to your eyeholes.">
     <meta name="twitter:image" content="http://inter-dimensionalcable.xyz/images/opengraph.png">
     <link rel="shortcut icon" href="favicon.png">
+    <style>
+        /* Additional styles for the top right image */
+        .top-right-image {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+        
+        .top-right-image:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Ensure the container allows for absolute positioning */
+        .container {
+            position: relative;
+        }
+        
+        /* Media query for smaller screens */
+        @media (max-width: 768px) {
+            .top-right-image {
+                max-width: 120px;
+                max-height: 120px;
+                top: 10px;
+                right: 10px;
+            }
+        }
+    </style>
 </head>
 
 <body class="tv-off">
@@ -83,6 +116,9 @@ TODO: Opengraph meta data to make things look nice when finished
         </div>
     </div>
     <div class="container">
+        <!-- Top right image -->
+        <img src="images/448fe504-3f79-49ce-a59a-8c53883596cd.png" alt="Top Right Image" class="top-right-image">
+        
         <!--        <img src="images/BONK-TV.png" alt="Rick and Morty TV Background" class="rick-bg">-->
         <video src="video/rick-tv.webm" class="rick-bg" id="rick-bg" preload>
         </video>
