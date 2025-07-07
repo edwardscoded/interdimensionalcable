@@ -1,5 +1,5 @@
 //Adding support to different subredits
-var tx_subs = ["/r/InterdimensionalCable", "/r/NotTimAndEric", "/r/ACIDS", "/r/fifthworldvideos","/r/IllBeYourGuide", "/r/CommercialCuts"];
+var tx_subs = ["/r/BonkTV"];
 var len_subs = tx_subs.length;
 var MAX_REQ = 50; //Max number of links will be requested each JSON call
 var PROB = 14; //Probability of accepting link (percentage)
